@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  scylla:
+    image: scylladb/scylla:5.2
+    container_name: scylla
+    command: --smp 1 --memory 2G --overprovisioned 1
+    ports:
+      - "9042:9042"
+      - "9180:9180"
+    volumes:
+      - scylla-data:/var/lib/scylla
+    healthcheck:
+      test: ["CMD-SHELL", "nodetool status >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+
+  cqlsh:
+    image: cassandra:3.11
+    container_name: cqlsh_runner
+    depends_on:
+      scylla:
+        condition: service_healthy
+    volumes:
+      - ./schema.cql:/schema/schema.cql:ro
+    entrypoint: [
+      "sh", "-c",
+      "echo 'Aguardando Scylla e aplicando schema...'; \
+      until cqlsh scylla 9042 -f /schema/schema.cql; \
+      do echo 'cqlsh falhou, tentando novamente em 2s...'; sleep 2; done; \
+      echo 'Schema aplicado.'"
+    ]
+
+volumes:
+  scylla-data:
