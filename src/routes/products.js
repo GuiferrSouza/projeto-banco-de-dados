@@ -1,5 +1,5 @@
 const express = require('express');
-const { connectMongoDB, Product } = require('../config/mongodb');
+const { connectMongoDB, Product } = require('../../data/mongo/mongodb');
 
 const router = express.Router();
 

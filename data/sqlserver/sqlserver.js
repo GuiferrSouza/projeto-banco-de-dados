@@ -1,17 +1,17 @@
 const sql = require('mssql');
 
 const config = {
-  server: 'EPLNTB-3K86324',
-  database: 'FEI_DB',
+  server: 'localhost',
+  database: 'myapp',
   user: 'sa',
-  password: 'admin',
+  password: 'YourStrong!Passw0rd',
+  port: parseInt('1433'),
+
   options: {
     encrypt: false,
     trustServerCertificate: true,
-    enableArithAbort: true,
-    instanceName: 'SQLEXPRESS',
-    port: 1433
   },
+
   pool: {
     max: 10,
     min: 0,
@@ -25,7 +25,7 @@ async function getConnection() {
   try {
     if (!pool) {
       pool = await sql.connect(config);
-      console.log('Conectado ao SQL Server');
+      console.log(`Conectado ao SQL Server em ${config.server}:${config.port}`);
     }
     return pool;
   } catch (err) {

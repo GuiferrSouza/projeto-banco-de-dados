@@ -1,6 +1,6 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
-const { getConnection, sql } = require('../config/sqlserver');
+const { getConnection, sql } = require('../../data/sqlserver/sqlserver');
 
 const router = express.Router();
 

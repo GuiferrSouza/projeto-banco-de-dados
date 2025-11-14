@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   scylla:
@@ -11,26 +11,90 @@ services:
     volumes:
       - scylla-data:/var/lib/scylla
     healthcheck:
-      test: ["CMD-SHELL", "nodetool status >/dev/null 2>&1 || exit 1"]
-      interval: 10s
+      test:
+        ["CMD-SHELL", "cqlsh -e 'DESCRIBE KEYSPACES' >/dev/null 2>&1 || exit 1"]
+      interval: 15s
       timeout: 10s
-      retries: 15
+      retries: 30
 
-  cqlsh:
+  scylla-schema-loader:
     image: cassandra:3.11
-    container_name: cqlsh_runner
+    container_name: scylla_schema_loader
     depends_on:
       scylla:
         condition: service_healthy
     volumes:
-      - ./schema.cql:/schema/schema.cql:ro
-    entrypoint: [
-      "sh", "-c",
-      "echo 'Aguardando Scylla e aplicando schema...'; \
-      until cqlsh scylla 9042 -f /schema/schema.cql; \
-      do echo 'cqlsh falhou, tentando novamente em 2s...'; sleep 2; done; \
-      echo 'Schema aplicado.'"
-    ]
+      - ./data/scylla/schema.cql:/schema/schema.cql:ro
+    entrypoint: >
+      sh -c "
+      echo 'Aplicando schema do Scylla...';
+      until cqlsh scylla 9042 -f /schema/schema.cql; do
+        echo 'Tentando novamente em 2s...';
+        sleep 2;
+      done;
+      echo 'Schema aplicado.';
+      "
+
+  mongodb:
+    image: mongo:7
+    container_name: mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: myapp
+    volumes:
+      - mongo-data:/data/db
+      - ./data/mongo/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+
+  mongo-express:
+    image: mongo-express
+    container_name: mongo-express
+    restart: always
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_SERVER: mongodb
+      ME_CONFIG_MONGODB_ENABLE_ADMIN: "true"
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: admin
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sqlserver
+    restart: always
+    ports:
+      - "1433:1433"
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "YourStrong!Passw0rd"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+
+  sqlserver-init:
+    image: node:18
+    container_name: sqlserver_init
+    depends_on:
+      sqlserver:
+        condition: service_started
+    volumes:
+      - ./data/sqlserver/sqlserver-init.js:/app/sqlserver-init.js:ro
+    working_dir: /app
+    entrypoint: >
+      sh -c "
+      echo 'Aguardando SQL Server...';
+      sleep 25;
+
+      echo 'Instalando dependências...';
+      npm init -y >/dev/null 2>&1;
+      npm install mssql >/dev/null 2>&1;
+
+      echo 'Executando inicialização do banco de dados...';
+      node sqlserver-init.js;
+      echo 'Init finalizado.';
+      "
 
 volumes:
   scylla-data:
+  mongo-data:
+  sqlserver-data:

@@ -3,9 +3,6 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 
-//// Descomentar para criar tabela sql:
-// const sqlinit = require('./init-database');
-
 const customersRoutes = require('./src/routes/customers');
 const productsRoutes = require('./src/routes/products');
 const ordersRoutes = require('./src/routes/orders');

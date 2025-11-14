@@ -1,23 +1,36 @@
 const express = require('express');
-const { ordersDB, requestLogsDB, dbInsert, dbFind, dbFindOne, dbUpdate } = require('../config/firebase');
+const crypto = require('crypto');
+
+const { 
+  dbInsert,
+  dbFind,
+  dbFindOne,
+  dbUpdate,
+  dbUpdateByCustomer,
+  ordersTable,
+  ordersByCustomerTable,
+  logsTable
+} = require('../../data/scylla/scylladb');
 
 const router = express.Router();
 
-router.use((req, res, next) => {
-  const logEntry = {
-    timestamp: new Date().toISOString(),
-    method: req.method,
-    path: req.path,
-    body: req.body,
-    query: req.query
-  };
+router.use(async (req, res, next) => {
+  try {
+    const logEntry = {
+      id: crypto.randomUUID(),
+      timestamp: new Date(),
+      method: req.method,
+      path: req.path,
+      body: JSON.stringify(req.body || {}),
+      query: JSON.stringify(req.query || {})
+    };
 
-  dbInsert(requestLogsDB, logEntry)
-    .then(() => next())
-    .catch(err => {
-      console.error('Erro ao logar requisição:', err);
-      next();
-    });
+    await dbInsert(logsTable, logEntry);
+  } catch (err) {
+    console.error('Erro ao logar requisição:', err);
+  }
+
+  next();
 });
 
 router.post('/', async (req, res) => {
@@ -28,19 +41,26 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Dados do pedido incompletos' });
     }
 
+    const id = crypto.randomUUID();
+    const now = new Date();
+
     const order = {
-      customerId,
-      customerName,
+      id,
+      customer_id: parseInt(customerId),
+      customer_name: customerName || null,
       items,
-      totalAmount,
+      total_amount: totalAmount,
       status: 'pending',
-      createdAt: new Date().toISOString()
+      created_at: now,
+      updated_at: now
     };
 
-    const newOrder = await dbInsert(ordersDB, order);
+    await dbInsert(ordersTable, order);
+    await dbInsert(ordersByCustomerTable, order);
+
     res.status(201).json({
       message: 'Pedido criado com sucesso',
-      order: newOrder
+      order
     });
   } catch (err) {
     console.error(err);
@@ -48,29 +68,20 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.get('/', async (req, res) => {
-  try {
-    const orders = await dbFind(ordersDB);
-    res.json({ orders });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Erro ao buscar pedidos' });
-  }
-});
-
 router.get('/customer/:customerId', async (req, res) => {
   try {
-    const orders = await dbFind(ordersDB, { customerId: parseInt(req.params.customerId) });
+    const customerId = parseInt(req.params.customerId);
+    const orders = await dbFind(ordersByCustomerTable, { customer_id: customerId });
     res.json({ orders });
   } catch (err) {
-    console.error(err);
+    console.error('Erro ao buscar pedidos por cliente:', err);
     res.status(500).json({ error: 'Erro ao buscar pedidos do cliente' });
   }
 });
 
 router.get('/:id', async (req, res) => {
   try {
-    const order = await dbFindOne(ordersDB, { _id: req.params.id });
+    const order = await dbFindOne(ordersTable, { id: req.params.id });
 
     if (!order) {
       return res.status(404).json({ error: 'Pedido não encontrado' });
@@ -91,15 +102,25 @@ router.patch('/:id/status', async (req, res) => {
       return res.status(400).json({ error: 'Status inválido' });
     }
 
-    const numUpdated = await dbUpdate(
-      ordersDB,
-      { _id: req.params.id },
-      { $set: { status, updatedAt: new Date().toISOString() } }
-    );
-
-    if (numUpdated === 0) {
+    const order = await dbFindOne(ordersTable, { id: req.params.id });
+    if (!order) {
       return res.status(404).json({ error: 'Pedido não encontrado' });
     }
+
+    const now = new Date();
+
+    await dbUpdate(
+      ordersTable,
+      { id: req.params.id },
+      { status, updated_at: now }
+    );
+
+    await dbUpdateByCustomer(
+      ordersByCustomerTable,
+      order.customer_id,
+      order.id,
+      { status, updated_at: now }
+    );
 
     res.json({ message: 'Status atualizado com sucesso' });
   } catch (err) {
@@ -110,10 +131,10 @@ router.patch('/:id/status', async (req, res) => {
 
 router.get('/logs/requests', async (req, res) => {
   try {
-    const logs = await dbFind(requestLogsDB);
+    const logs = await dbFind(logsTable, { id: '' });
     res.json({ logs: logs.slice(-100) });
   } catch (err) {
-    console.error(err);
+    console.error('Erro ao buscar logs:', err);
     res.status(500).json({ error: 'Erro ao buscar logs' });
   }
 });

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 
 function AdminProducts() {
@@ -92,7 +92,7 @@ function AdminProducts() {
       {message && <div className="success-message">{message}</div>}
 
       <div className="admin-form">
-        <h2 style={{ marginBottom: '1.5rem' }}>Cadastrar Novo Produto</h2>
+        <h2 style={{ marginBottom: '2rem', color: '#2d3748', fontSize: '1.5rem' }}>Cadastrar Novo Produto</h2>
         <form onSubmit={handleSubmit}>
           <div className="form-row">
             <div className="form-group">
@@ -152,12 +152,12 @@ function AdminProducts() {
         </form>
       </div>
 
-      <h2 style={{ marginTop: '3rem', marginBottom: '1.5rem' }}>Produtos Cadastrados</h2>
+      <h2 style={{ marginTop: '3rem', marginBottom: '2rem', color: '#2d3748', fontSize: '1.75rem' }}>Produtos Cadastrados</h2>
 
       <div className="products-grid">
         {products.map(product => (
           <div key={product._id} className="product-card">
-            <div className="product-image" style={{ backgroundColor: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>
+            <div className="product-image" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a0aec0' }}>
               {product.imageUrl ? (
                 <img src={product.imageUrl} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               ) : (
@@ -167,10 +167,17 @@ function AdminProducts() {
             <div className="product-info">
               <div className="product-brand">{product.brand}</div>
               <h3 className="product-name">{product.name}</h3>
-              <p style={{ fontSize: '0.85rem', color: '#666' }}>{product.category}</p>
+              <p style={{ fontSize: '0.85rem', color: '#718096' }}>{product.category}</p>
               <div className="product-price">R$ {product.price.toFixed(2)}</div>
-              <p style={{ fontSize: '0.85rem', color: '#888' }}>Estoque: {product.stock}</p>
-              <button className="product-button" onClick={() => handleDelete(product._id)} style={{ backgroundColor: '#d32f2f' }}>
+              <p style={{ fontSize: '0.85rem', color: '#a0aec0', marginTop: '0.5rem' }}>Estoque: {product.stock}</p>
+              <button 
+                className="product-button" 
+                onClick={() => handleDelete(product._id)} 
+                style={{ 
+                  background: 'linear-gradient(135deg, #fc8181 0%, #f56565 100%)',
+                  marginTop: '0.75rem'
+                }}
+              >
                 Excluir
               </button>
             </div>
