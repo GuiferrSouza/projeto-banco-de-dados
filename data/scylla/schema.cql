@@ -6,11 +6,7 @@ WITH replication = {
 
 USE myapp;
 
-DROP TABLE IF EXISTS orders;
-DROP TABLE IF EXISTS request_logs;
-DROP TABLE IF EXISTS orders_by_customer;
-
-CREATE TABLE orders (
+CREATE TABLE IF NOT EXISTS orders (
   id uuid PRIMARY KEY,
   customer_id int,
   customer_name text,
@@ -21,7 +17,7 @@ CREATE TABLE orders (
   updated_at timestamp
 );
 
-CREATE TABLE request_logs (
+CREATE TABLE IF NOT EXISTS request_logs (
   id uuid PRIMARY KEY,
   timestamp timestamp,
   method text,
@@ -30,7 +26,7 @@ CREATE TABLE request_logs (
   query text
 );
 
-CREATE TABLE orders_by_customer (
+CREATE TABLE IF NOT EXISTS orders_by_customer (
   customer_id int,
   id uuid,
   customer_name text,
