@@ -7,27 +7,20 @@ function Orders({ user }) {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    console.log('1. Orders useEffect - user:', user);
     if (user && user.id) {
       loadOrders();
     } else {
-      console.log('2. User não disponível ainda');
       setLoading(false);
     }
   }, [user]);
 
   const loadOrders = async () => {
     try {
-      console.log('3. Carregando pedidos para user.id:', user.id);
       const response = await axios.get(`/api/orders/customer/${user.id}`);
-      console.log('4. Resposta da API:', response.data);
-      console.log('5. Orders recebidos:', response.data.orders);
       
       setOrders(response.data.orders || []);
       setLoading(false);
     } catch (err) {
-      console.error('6. Erro ao carregar pedidos:', err);
-      console.error('6.1 Erro completo:', err.response);
       setError('Erro ao carregar pedidos');
       setLoading(false);
     }

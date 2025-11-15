@@ -72,6 +72,7 @@ router.get('/customer/:customerId', async (req, res) => {
   try {
     const customerId = parseInt(req.params.customerId);
     const orders = await dbFind(ordersByCustomerTable, { customer_id: customerId });
+    orders.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     res.json({ orders });
   } catch (err) {
     console.error('Erro ao buscar pedidos por cliente:', err);
